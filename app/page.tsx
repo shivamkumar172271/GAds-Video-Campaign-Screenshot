@@ -1,65 +1,259 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import html2canvas from "html2canvas";
 
 export default function Home() {
+
+  const [url, setUrl] = useState("");
+  const [video, setVideo] = useState<any>(null);
+  const [impressions, setImpressions] = useState("0");
+  const [views, setViews] = useState("0");
+  const [editMode, setEditMode] = useState(false);
+
+  function extractVideoId(link: string) {
+    const regExp = /v=([^&]+)/;
+    const match = link.match(regExp);
+    return match ? match[1] : null;
+  }
+
+  function formatNumber(num: string) {
+    return Number(num).toLocaleString("en-US");
+  }
+
+  function formatDuration(duration: string) {
+    const match = duration.match(/PT(\d+M)?(\d+S)?/);
+    const minutes = match?.[1]?.replace("M", "") || "0";
+    const seconds = match?.[2]?.replace("S", "") || "0";
+    return `${minutes}:${seconds.padStart(2, "0")}`;
+  }
+
+  async function analyzeVideo() {
+
+    const id = extractVideoId(url);
+
+    if (!id) {
+      alert("Invalid YouTube link");
+      return;
+    }
+
+    const res = await fetch(`/api/youtube?id=${id}`);
+    const data = await res.json();
+
+    const videoData = data.items[0];
+
+    const viewCount = Number(videoData.statistics?.viewCount || 0);
+
+    setViews(viewCount.toString());
+
+    const calculatedImpressions = Math.round(viewCount * 1.43);
+
+    setImpressions(calculatedImpressions.toString());
+
+    setVideo(videoData);
+  }
+
+  function handleViewChange(value: string) {
+
+    setViews(value);
+
+    const viewNum = Number(value);
+
+    if (!isNaN(viewNum)) {
+
+      const newImpressions = Math.round(viewNum * 1.43);
+
+      setImpressions(newImpressions.toString());
+    }
+  }
+
+  async function downloadRow() {
+
+    const capture = document.getElementById("capture-area");
+
+    if (!capture) return;
+
+    const canvas = await html2canvas(capture, {
+      scale: 3,
+      backgroundColor: "#ffffff",
+      useCORS: true
+    });
+
+    const link = document.createElement("a");
+
+    link.download = "youtube-report.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="page-container">
+
+      <h1 className="page-title">
+        GAds Video Campaign Screenshot
+      </h1>
+
+      <div className="search-section">
+
+        <input
+          type="text"
+          placeholder="Paste YouTube link"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="search-input"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+        <button
+          onClick={analyzeVideo}
+          className="search-btn"
+        >
+          Analyze Video
+        </button>
+
+      </div>
+
+      {video && (
+
+        <div className="table-section">
+
+          {/* ONLY TABLE IS CAPTURED */}
+          <div id="capture-area">
+
+            <table className="ads-table">
+
+              <thead>
+                <tr>
+
+                  <th className="th-left">
+                    <input type="checkbox" className="header-checkbox" />
+                    Video <span className="sort-arrow">↑</span>
+                  </th>
+
+                  <th className="th-right">Impr.</th>
+
+                  <th className="th-right">TrueView views</th>
+
+                </tr>
+              </thead>
+
+              <tbody>
+
+                <tr>
+
+                  <td className="video-cell">
+
+                    <input type="checkbox" className="row-checkbox" />
+
+                    <img
+                      src={video.snippet.thumbnails.medium.url}
+                      className="thumb"
+                    />
+
+                    <div>
+
+                      <p className="video-title">
+                        {video.snippet.title}
+                      </p>
+
+                      <p className="video-meta">
+                        {formatDuration(video.contentDetails.duration)} • {video.snippet.channelTitle}
+                      </p>
+
+                      <a
+                        href={`https://www.youtube.com/channel/${video.snippet.channelId}`}
+                        target="_blank"
+                        className="video-link"
+                      >
+                        Link YouTube channel or video
+                      </a>
+
+                    </div>
+
+                  </td>
+
+                  <td className="number-cell">
+
+                    {editMode ? (
+
+                      <input
+                        type="number"
+                        value={impressions}
+                        readOnly
+                        className="input-num"
+                      />
+
+                    ) : (
+
+                      formatNumber(impressions)
+
+                    )}
+
+                  </td>
+
+                  <td className="number-cell">
+
+                    {editMode ? (
+
+                      <input
+                        type="number"
+                        value={views}
+                        onChange={(e) => handleViewChange(e.target.value)}
+                        className="input-num"
+                      />
+
+                    ) : (
+
+                      formatNumber(views)
+
+                    )}
+
+                  </td>
+
+                </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+          {/* BUTTONS OUTSIDE SCREENSHOT AREA */}
+
+          <div className="table-actions">
+
+            {!editMode ? (
+
+              <button
+                onClick={() => setEditMode(true)}
+                className="download-btn"
+              >
+                Edit
+              </button>
+
+            ) : (
+
+              <button
+                onClick={() => setEditMode(false)}
+                className="download-btn"
+              >
+                Save
+              </button>
+
+            )}
+
+            <button
+              onClick={downloadRow}
+              className="download-btn"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Download
+            </button>
+
+          </div>
+
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+      )}
+
+    </main>
   );
 }
