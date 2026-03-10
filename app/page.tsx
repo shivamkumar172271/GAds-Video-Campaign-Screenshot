@@ -13,11 +13,29 @@ export default function Home() {
   const [percentageIncrease, setPercentageIncrease] = useState("0");
 
   function extractVideoId(link: string) {
-    const regExp = /v=([^&]+)/;
-    const match = link.match(regExp);
-    return match ? match[1] : null;
-  }
 
+    try {
+      const url = new URL(link);
+
+      if (url.searchParams.get("v")) {
+        return url.searchParams.get("v");
+      }
+
+      if (url.hostname === "youtu.be") {
+        return url.pathname.slice(1);
+      }
+
+      if (url.pathname.includes("/shorts/")) {
+        return url.pathname.split("/shorts/")[1];
+      }
+
+      return null;
+
+    } catch {
+      return null;
+    }
+
+  }
   function formatNumber(num: string) {
     return Number(num).toLocaleString("en-US");
   }
