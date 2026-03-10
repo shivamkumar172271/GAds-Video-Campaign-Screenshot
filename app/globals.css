@@ -65,7 +65,8 @@
   font-weight: 600;
   color: #3c4043;
   padding: 12px;
-  border: 1px solid #dadce0;
+  border-left: 1px solid #dadce0;
+  border-bottom: 1px solid #979191;
 }
 
 .ads-table td {
@@ -73,11 +74,12 @@
   font-size: 12px;
   font-weight: normal;
   color: #545151;
-  border: 1px solid #dadce0;
+  border-left: 1px solid #dadce0;
 }
 
 .th-left {
   text-align: left;
+  display: flex;
 }
 
 .th-right {
@@ -121,6 +123,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 550px;
+}
+
+.video-th-title {
+  margin-left: 1rem;
 }
 
 .video-meta {

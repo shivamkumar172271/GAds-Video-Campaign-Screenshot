@@ -191,7 +191,9 @@ export default function Home() {
 
                   <th className="th-left">
                     <input type="checkbox" className="header-checkbox" />
-                    Video <span className="sort-arrow">↑</span>
+                    <div className="video-th-title">
+                      Video <span className="sort-arrow">↑</span>
+                    </div>
                   </th>
 
                   <th className="th-right">Impr.</th>
