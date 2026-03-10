@@ -10,6 +10,7 @@ export default function Home() {
   const [impressions, setImpressions] = useState("0");
   const [views, setViews] = useState("0");
   const [editMode, setEditMode] = useState(false);
+  const [percentageIncrease, setPercentageIncrease] = useState("0");
 
   function extractVideoId(link: string) {
     const regExp = /v=([^&]+)/;
@@ -28,7 +29,24 @@ export default function Home() {
     return `${minutes}:${seconds.padStart(2, "0")}`;
   }
 
+  function handlePercentageChange(value: string) {
+    setPercentageIncrease(value);
+
+    const viewNum = Number(views);
+    const percent = Number(value);
+
+    if (!isNaN(viewNum) && !isNaN(percent)) {
+      const newImpr = Math.round(viewNum * (1 + percent / 100));
+      setImpressions(newImpr.toString());
+    }
+  }
+
   async function analyzeVideo() {
+
+    if (!url) {
+      alert("Please paste a YouTube link");
+      return;
+    }
 
     const id = extractVideoId(url);
 
@@ -36,6 +54,11 @@ export default function Home() {
       alert("Invalid YouTube link");
       return;
     }
+
+    // reset previous state
+    setVideo(null);
+    setImpressions("0");
+    setViews("0");
 
     const res = await fetch(`/api/youtube?id=${id}`);
     const data = await res.json();
@@ -45,25 +68,19 @@ export default function Home() {
     const viewCount = Number(videoData.statistics?.viewCount || 0);
 
     setViews(viewCount.toString());
-
-    const calculatedImpressions = Math.round(viewCount * 1.43);
-
-    setImpressions(calculatedImpressions.toString());
-
+    setImpressions("0");
     setVideo(videoData);
   }
 
   function handleViewChange(value: string) {
-
     setViews(value);
 
     const viewNum = Number(value);
+    const percent = Number(percentageIncrease);
 
-    if (!isNaN(viewNum)) {
-
-      const newImpressions = Math.round(viewNum * 1.43);
-
-      setImpressions(newImpressions.toString());
+    if (!isNaN(viewNum) && !isNaN(percent)) {
+      const newImpr = Math.round(viewNum * (1 + percent / 100));
+      setImpressions(newImpr.toString());
     }
   }
 
@@ -86,6 +103,14 @@ export default function Home() {
     link.click();
   }
 
+  function clearSearch() {
+    setUrl("");
+    setVideo(null);
+    setViews("0");
+    setImpressions("0");
+    setPercentageIncrease("0");
+  }
+
   return (
     <main className="page-container">
 
@@ -93,15 +118,38 @@ export default function Home() {
         GAds Video Campaign Screenshot
       </h1>
 
-      <div className="search-section">
+      <div className="search-section" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
 
-        <input
-          type="text"
-          placeholder="Paste YouTube link"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          className="search-input"
-        />
+        <div style={{ position: "relative" }}>
+
+          <input
+            type="text"
+            placeholder="Paste YouTube link"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="search-input"
+            style={{ paddingRight: "30px" }}
+          />
+
+          {url && (
+            <button
+              onClick={clearSearch}
+              style={{
+                position: "absolute",
+                right: "5px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                fontSize: "16px"
+              }}
+            >
+              ✕
+            </button>
+          )}
+
+        </div>
 
         <button
           onClick={analyzeVideo}
@@ -116,7 +164,6 @@ export default function Home() {
 
         <div className="table-section">
 
-          {/* ONLY TABLE IS CAPTURED */}
           <div id="capture-area">
 
             <table className="ads-table">
@@ -172,22 +219,7 @@ export default function Home() {
                   </td>
 
                   <td className="number-cell">
-
-                    {editMode ? (
-
-                      <input
-                        type="number"
-                        value={impressions}
-                        readOnly
-                        className="input-num"
-                      />
-
-                    ) : (
-
-                      formatNumber(impressions)
-
-                    )}
-
+                    {formatNumber(impressions)}
                   </td>
 
                   <td className="number-cell">
@@ -198,7 +230,7 @@ export default function Home() {
                         type="number"
                         value={views}
                         onChange={(e) => handleViewChange(e.target.value)}
-                        className="input-num"
+                        className="input-num no-spinner"
                       />
 
                     ) : (
@@ -217,9 +249,25 @@ export default function Home() {
 
           </div>
 
-          {/* BUTTONS OUTSIDE SCREENSHOT AREA */}
+          <div className="table-actions" style={{ display: "flex", gap: "15px", alignItems: "center" }}>
 
-          <div className="table-actions">
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <label style={{ fontWeight: "bold", whiteSpace: "nowrap" }}>Increase Impressions:</label>
+              <input
+                type="number"
+                value={percentageIncrease}
+                onChange={(e) => handlePercentageChange(e.target.value)}
+                placeholder="%"
+                style={{
+                  width: "80px",
+                  padding: "5px",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  textAlign: "right"
+                }}
+              />
+              <span style={{ fontWeight: "bold" }}>%</span>
+            </div>
 
             {!editMode ? (
 
