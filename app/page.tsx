@@ -116,7 +116,11 @@ export default function Home() {
 
     const link = document.createElement("a");
 
-    link.download = "youtube-report.png";
+    const fileName = video?.snippet?.title
+      ?.replace(/[\\/:*?"<>|]/g, "")
+      ?.replace(/\s+/g, "-");
+
+    link.download = `${fileName || "youtube-report"}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   }
